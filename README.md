@@ -1,11 +1,11 @@
 # cmd-parser
 
-cmd-parserは、スペース区切りで構成されたコマンド (例: `!change value1 value2`) のメッセージをパースするために便利なライブラリです。\
-主にircのようなチャットで役に立ちます。
+cmd-parserは、スペース区切りで構成されたコマンド (例: `!say username msg`) のメッセージをパースするために便利なライブラリです。\
+主にWebSocketやircのようなチャットで役に立ちます。
 
 ## 推奨環境
 
-Node.js v18.16.1
+Node.js v18.16.1 以上
 
 ## 簡単な使い方
 
@@ -52,7 +52,53 @@ parser.set({
 }
 ```
 のようにします。\
-具体的には、commandsに配列を作り、配列の中のオブジェクトに、nameはコマンド名を、descriptionにはコマンドの概要を表示します。\
+具体的には、commandsに配列を作り、配列の中のオブジェクトに、nameはコマンド名を、descriptionにはコマンドの概要を表示します。descriptionは省略可能です。\
 複数コマンドを作りたい場合は、このようなオブジェクトを複数指定します。ただし、同じコマンド名は複数指定できません。
 
-そして、コマンドを実行したときにメッセージが帰るようにするには、
+そして、コマンドを実行したときにメッセージが帰るようにするには、callback関数を指定します。\
+returnしたものが、`parser.parse`の返値で帰ります (returnせずにcallback内で完結する方法は下記で説明します) 。
+```js
+{
+  prefix: "!",
+  commands: [
+    {
+      name: "info",
+      description: "コマンドの概要",
+      callback: () => {
+        return "このボットは、コマンドをパースします。";
+      }
+    }
+  ]
+}
+```
+そのコマンドが静的なレスポンスしか返さないのなら、単純に文字列だけでもいけます。これは上記と同じ動作をします。
+```js
+callback: "このボットは、コマンドをパースします。"
+```
+
+次に、コマンドに引数を持たせるようにします。\
+例えば、`!say message`などのように、指定したメッセージをオウム返しするコマンドを作るとします。\
+結論から言えば以下のようになります。
+```js
+{
+  prefix: "!",
+  commands: [
+    {
+      name: "say",
+      description: "メッセージをオウム返しします",
+      options: [
+        {
+          name: "message",
+          type: "string",
+          description: "オウム返しするメッセージです",
+          required: true
+        }
+      ],
+      callback: (options) => {
+        return options.getString("message");
+      }
+    }
+  ]
+}
+```
+まず、引数を指定できるようにするには、optionsに配列を作り、その中のオブジェクトに、nameは引数の名前、typeは引数の型、descriptionは引数の説明、requiredはその引数は必須かどうかを指定します。
