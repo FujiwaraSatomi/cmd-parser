@@ -163,8 +163,8 @@ callback: (err, options, raw, command) {
     詳しくは下記
 - `options` - コマンドの引数を取得します。
   `options.getString()` - 文字列の引数を取得します。このメソッドの第一引数には`name`を指定します (以下省略)。返値は`String`です。
-  `options.getInteger()` - 小数値の引数を取得します。返値は`Number`です。
-  `options.getNumber()` - 整数値の引数を取得します。返値は`Number`です。
+  `options.getInteger()` - 整数値の引数を取得します。返値は`Number`です。
+  `options.getNumber()` - 小数値の引数を取得します。返値は`Number`です。
   `options.getBool()` - 真偽値の引数を取得します。返値は`Boolean`です。
   `options.getSelect()` - 選択式の引数を取得します。返値は`String`です。
   `options.getSubcmd()` - サブコマンドの引数を取得します。返値は`String`です。
@@ -175,7 +175,7 @@ callback: (err, options, raw, command) {
   `raw.toArray()` - メッセージを引数で分けて配列にします。詳細を取得したい場合は`options.getAll()`を使用してください。
 - `command` - nameやdescriptionがあるコマンドのオブジェクトを取得します。
 
-返値は文字列を指定します。それ以外の場合は、toStringを介した上で返されます。
+返値はString型を指定し、toStringを介した上で返されます。つまり、Number型で返してもString型で返ってくるという意味です。
 
 #### `err.type`
 | エラー番号 | 説明 | 起こりうる型 |
