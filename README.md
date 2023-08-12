@@ -1,7 +1,7 @@
 # cmd-parser
 cmd-parserは、スペース区切りで構成されたコマンド (例: `!say username msg`) のメッセージをパースするために便利なライブラリです。\
-Discord.jsのBuildCommand
-主にWebSocketやircのようなチャットで役に立ちます。
+主にWebSocketやircのようなチャットで役に立ちます。\
+Discord.jsのアプリケーションコマンドを参考としているため、同じような構文でコマンドを設定することが出来ます。
 
 ## 推奨環境
 Node.js v18.16.1 以上
