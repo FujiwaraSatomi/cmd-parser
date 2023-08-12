@@ -1,5 +1,6 @@
 # cmd-parser
 cmd-parserは、スペース区切りで構成されたコマンド (例: `!say username msg`) のメッセージをパースするために便利なライブラリです。\
+Discord.jsのBuildCommand
 主にWebSocketやircのようなチャットで役に立ちます。
 
 ## 推奨環境
@@ -85,9 +86,9 @@ parser.set({
 });
 console.log(parser.parse("!info")); // "このボットは、コマンドをパースします。"
 ```
-そのコマンドが静的なレスポンスしか返さないのなら、単純に文字列だけでもいけます。これは上記と同じ動作をします。
+そのコマンドが静的なレスポンスしか返さないのなら、以下のように変更することも出来ます。
 ```js
-callback: "このボットは、コマンドをパースします。"
+callback: () => "このボットは、コマンドをパースします。"
 ```
 
 次に、コマンドに引数を持たせるようにします。\
@@ -171,25 +172,27 @@ callback: (err, options, raw, command) {
   `options.getAll()` - すべての引数を取得します。
   ※可変長引数の場合はすべての型で配列が返ります。
 - `raw` - parseの引数に指定した生のメッセージを取得します。
-  `raw.getArgs()` - メッセージを引数で分けて配列にします。詳細を取得したい場合は`options.getAll()`を使用してください。
+  `raw.toArray()` - メッセージを引数で分けて配列にします。詳細を取得したい場合は`options.getAll()`を使用してください。
 - `command` - nameやdescriptionがあるコマンドのオブジェクトを取得します。
 
+返値は文字列を指定します。それ以外の場合は、toStringを介した上で返されます。
+
 #### `err.type`
-| タイプ | 説明 |
-| :-: | :-: |
-| 0 | エラーはありません |
-| 1 | matchにマッチしていません |
-| 2 | 文字数がminlengthより少ないです |
-| 3 | 文字数がmaxlengthより多いです |
-| 4 | 数値がminよりも小さいです |
-| 5 | 数値がmaxよりも大きいです |
-| 6 | boolで、存在しない値が指定されています |
-| 7 | selectで、存在しない値が指定されています |
-| 8 | 存在しないサブコマンドです |
-| 9 | 必須な引数には何も指定されていません |
+| エラー番号 | 説明 | 起こりうる型 |
+| :-: | :-: | :-: |
+| 0 | エラーはありません | なし |
+| 1 | matchにマッチしていません | `string` |
+| 2 | 文字数がminlengthより少ないです | `string` |
+| 3 | 文字数がmaxlengthより多いです | `string` |
+| 4 | 数値がminよりも小さいです | `number` `integer` |
+| 5 | 数値がmaxよりも大きいです | `number` `integer` |
+| 6 | boolで、存在しない値が指定されています | `bool` |
+| 7 | selectで、存在しない値が指定されています | `select` |
+| 8 | 存在しないサブコマンドです | `subcmd` |
+| 9 | 必須な引数には何も指定されていません | 全て |
 
 #### `err.type_p`
-| タイプ | 説明 |
+| エラー番号 | 説明 |
 | :-: | :-: |
 | 0 | エラーはありません |
 | 1 | matchにマッチしていません |
@@ -216,7 +219,7 @@ callback: (err, options, raw, command) {
         }
       ],
       callback: (err) => {
-        if(err.type == 10) return "引数argは必須です";
+        if(err.type == 9) return "引数argは必須です";
         return "テストを通過しました";
       }
     }
@@ -240,7 +243,7 @@ parser.parse("!test"); // "引数argは必須です"
       required: true,
     }
   ],
-  ignore: [10]
+  ignore: [9],
   callback: (err) => {
     return "テストを通過しました";
   }
@@ -250,7 +253,7 @@ parser.parse("!test"); // "引数argは必須です"
 parser.parse("!test"); // "String型の引数'arg'は必須です"
 parser.parse("!test a"); // "テストを通過しました"
 ```
-この例では、エラー番号10を無視し、callbackを発生させないようにし、デフォルトのエラーを発生させています。
+この例では、エラー番号9を無視し、callbackを発生させないようにし、デフォルトのエラーを発生させています。
 
 #### デフォルトのエラーを指定する
 デフォルトのエラーを指定することもできます。\
@@ -275,7 +278,7 @@ parser.parse("!test a"); // "テストを通過しました"
         }
       ],
       callback: (err) => {
-        if(err.type == 10) return "引数argは必須です";
+        if(err.type == 9) return "引数argは必須です";
         return "テストを通過しました";
       }
     }
@@ -344,10 +347,10 @@ errors: {
           name: "hash",
           type: "string",
           match: /^[a-f0-9]{10}$/,
-          required: true,
+          required: true
         }
       ],
-      ignore: [10],
+      ignore: [9],
       callback: (err) => {
         if(err.is_err) return "ハッシュではありません";
         return "ハッシュです";
@@ -376,10 +379,10 @@ parser.parse("!hash test"); // "ハッシュではありません"
           type: "string",
           minlength: 3,
           maxlength: 15,
-          required: true,
+          required: true
         }
       ],
-      ignore: [10],
+      ignore: [9],
       callback: (err) => {
         if(err.type == 2) return "ユーザー名が短すぎます";
         if(err.type == 3) return "ユーザー名が長すぎます";
@@ -392,4 +395,43 @@ parser.parse("!hash test"); // "ハッシュではありません"
 ```js
 parser.parse("!name a"); // "ユーザー名が短すぎます"
 parser.parse("!name yukinya"); // "ユーザー名は指定した長さあります"
+```
+
+#### 2つの数値を足し算する
+```js
+{
+  prefix: "!",
+  commands: [
+    {
+      name: "add",
+      description: "2つの数値を足し算します",
+      options: [
+        {
+          name: "num1",
+          type: "integer",
+          min: 0,
+          max: 9999,
+          required: true
+        },
+        {
+          name: "num2",
+          type: "integer",
+          min: 0,
+          max: 9999,
+          required: true
+        }
+      ],
+      ignore: [4, 5, 9],
+      callback: (err, options) => {
+        let num1 = options.getInteger("num1");
+        let num2 = options.getInteger("num2");
+        return num1 + num2;
+      }
+    }
+  ]
+}
+```
+```js
+parser.parse("!add 5"); // "Integer型の引数'arg2'は必須です"
+parser.parse("!add 5 10"); // "15"
 ```
