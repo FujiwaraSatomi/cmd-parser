@@ -1,7 +1,6 @@
 # cmd-parser
 cmd-parserは、スペース区切りで構成されたコマンド (例: `!say username msg`) のメッセージをパースするために便利なライブラリです。\
-主にWebSocketやircのようなチャットで役に立ちます。\
-Discord.jsのアプリケーションコマンドを参考としているため、同じような構文でコマンドを設定することが出来ます。
+主にWebSocketやircのようなチャットで役に立ちます。
 
 ## 推奨環境
 Node.js v18.16.1 以上
@@ -86,9 +85,9 @@ parser.set({
 });
 console.log(parser.parse("!info")); // "このボットは、コマンドをパースします。"
 ```
-そのコマンドが静的なレスポンスしか返さないのなら、以下のように変更することも出来ます。
+そのコマンドが静的なレスポンスしか返さないのなら、単純に文字列だけでもいけます。これは上記と同じ動作をします。
 ```js
-callback: () => "このボットは、コマンドをパースします。"
+callback: "このボットは、コマンドをパースします。"
 ```
 
 次に、コマンドに引数を持たせるようにします。\
@@ -123,7 +122,7 @@ descriptionとrequiredは省略可能です。
 引数の型は5つあります。
 
 | 型 | 説明 |
-| :-: | :-: |
+| :-: | :-: | :-: |
 | string | 文字列を指定します any型を使用したい場合はこの型を使用してください |
 | integer | 整数値を指定します |
 | number | 小数値を指定します |
@@ -150,7 +149,7 @@ descriptionとrequiredは省略可能です。
 
 ### callbackの引数
 ```js
-callback: (err, options, raw, command) {
+callback: (err, options, raw, command) => {
   
 }
 ```
@@ -163,8 +162,8 @@ callback: (err, options, raw, command) {
     詳しくは下記
 - `options` - コマンドの引数を取得します。
   `options.getString()` - 文字列の引数を取得します。このメソッドの第一引数には`name`を指定します (以下省略)。返値は`String`です。
-  `options.getInteger()` - 整数値の引数を取得します。返値は`Number`です。
-  `options.getNumber()` - 小数値の引数を取得します。返値は`Number`です。
+  `options.getInteger()` - 小数値の引数を取得します。返値は`Number`です。
+  `options.getNumber()` - 整数値の引数を取得します。返値は`Number`です。
   `options.getBool()` - 真偽値の引数を取得します。返値は`Boolean`です。
   `options.getSelect()` - 選択式の引数を取得します。返値は`String`です。
   `options.getSubcmd()` - サブコマンドの引数を取得します。返値は`String`です。
@@ -172,27 +171,25 @@ callback: (err, options, raw, command) {
   `options.getAll()` - すべての引数を取得します。
   ※可変長引数の場合はすべての型で配列が返ります。
 - `raw` - parseの引数に指定した生のメッセージを取得します。
-  `raw.toArray()` - メッセージを引数で分けて配列にします。詳細を取得したい場合は`options.getAll()`を使用してください。
+  `raw.getArgs()` - メッセージを引数で分けて配列にします。詳細を取得したい場合は`options.getAll()`を使用してください。
 - `command` - nameやdescriptionがあるコマンドのオブジェクトを取得します。
 
-返値はString型を指定し、toStringを介した上で返されます。つまり、Number型で返してもString型で返ってくるという意味です。
-
 #### `err.type`
-| エラー番号 | 説明 | 起こりうる型 |
-| :-: | :-: | :-: |
-| 0 | エラーはありません | なし |
-| 1 | matchにマッチしていません | `string` |
-| 2 | 文字数がminlengthより少ないです | `string` |
-| 3 | 文字数がmaxlengthより多いです | `string` |
-| 4 | 数値がminよりも小さいです | `number` `integer` |
-| 5 | 数値がmaxよりも大きいです | `number` `integer` |
-| 6 | boolで、存在しない値が指定されています | `bool` |
-| 7 | selectで、存在しない値が指定されています | `select` |
-| 8 | 存在しないサブコマンドです | `subcmd` |
-| 9 | 必須な引数には何も指定されていません | 全て |
+| タイプ | 説明 |
+| :-: | :-: |
+| 0 | エラーはありません |
+| 1 | matchにマッチしていません |
+| 2 | 文字数がminlengthより少ないです |
+| 3 | 文字数がmaxlengthより多いです |
+| 4 | 数値がminよりも小さいです |
+| 5 | 数値がmaxよりも大きいです |
+| 6 | boolで、存在しない値が指定されています |
+| 7 | selectで、存在しない値が指定されています |
+| 8 | 存在しないサブコマンドです |
+| 9 | 必須な引数には何も指定されていません |
 
 #### `err.type_p`
-| エラー番号 | 説明 |
+| タイプ | 説明 |
 | :-: | :-: |
 | 0 | エラーはありません |
 | 1 | matchにマッチしていません |
@@ -219,7 +216,7 @@ callback: (err, options, raw, command) {
         }
       ],
       callback: (err) => {
-        if(err.type == 9) return "引数argは必須です";
+        if(err.type == 10) return "引数argは必須です";
         return "テストを通過しました";
       }
     }
@@ -243,7 +240,7 @@ parser.parse("!test"); // "引数argは必須です"
       required: true,
     }
   ],
-  ignore: [9],
+  ignore: [10]
   callback: (err) => {
     return "テストを通過しました";
   }
@@ -253,7 +250,12 @@ parser.parse("!test"); // "引数argは必須です"
 parser.parse("!test"); // "String型の引数'arg'は必須です"
 parser.parse("!test a"); // "テストを通過しました"
 ```
-この例では、エラー番号9を無視し、callbackを発生させないようにし、デフォルトのエラーを発生させています。
+この例では、エラー番号10を無視し、callbackを発生させないようにし、デフォルトのエラーを発生させています。\
+すべてのエラーを無視するには、
+```js
+ignore: parser.all
+```
+と指定します。
 
 #### デフォルトのエラーを指定する
 デフォルトのエラーを指定することもできます。\
@@ -278,7 +280,7 @@ parser.parse("!test a"); // "テストを通過しました"
         }
       ],
       callback: (err) => {
-        if(err.type == 9) return "引数argは必須です";
+        if(err.type == 10) return "引数argは必須です";
         return "テストを通過しました";
       }
     }
@@ -312,9 +314,10 @@ errors: {
 
 | 引数 | 説明 |
 | :-: | :-: |
+| n | エラー番号です (上記参照) |
 | type | 型の名前です |
 | name | 引数の名前です |
-| arg | エラーに対応した条件の値です (以下参照) |
+| arg | エラーに対応した条件の値です (下記参照) |
 | value | 実際に指定された値です。必須の引数に指定されていなかった場合でも、空文字(`""`)で返ります |
 
 #### argに格納される値
@@ -329,6 +332,108 @@ errors: {
 | 7 | choices (`[ name, name, ... ]`が格納されている) |
 | 8 | commands (`[ name, name, ... ]`が格納されている) |
 | 9 | `null` |
+
+### 具体的な仕様 (BNF風)
+```js
+parser.set(<settings>);
+```
+```
+<settings> → {
+               prefix: <prefix>,
+               [helpcmd: <helpcmd>,]
+               [errors: <errors>,]
+               commands: <commands>
+             }
+<prefix> → <string-witout-spaces>
+<helpcmd> → <string-alphanumeric>
+<string-witout-spaces> → (<character> - " ")+
+<string-alphanumeric> → (a..z | A..Z | 0..9)+
+<errors> → {
+             (<error-code>: <error-format>,)*
+           }
+<error-code> → 1..9
+<error-format> → (type, name, arg, value) => {
+                   return <string>
+                 }
+<commands> → [
+               (<command>,)*
+             ]
+<command> → {
+              name: <string-witout-spaces>,
+              [description: <string>,]
+              [options: <options>,]
+              [ignore: <ignore>,]
+              [callback: <callback>]
+            }
+<options> → [
+              (<option>,)*
+            ]
+<ignore> → [
+             (<error-code>,)*
+           ]
+<callback> → (err, options, raw, command) => {
+               return <any>
+             }
+<option> → {
+             name: <string-witout-spaces>,
+             [description: <string>,]
+             type: <type>,
+             [match: <match>,]
+             [minlength: <number>,]
+             [maxlength: <number>,]
+             [min: <number>,]
+             [max: <number>,]
+             [maxpoint: <number>,]
+             [values: <values>,]
+             [choices: <choices>,]
+             [commands: <commands>,]
+             [options: <options>,]
+             [maxarglength: <number>,]
+             [required: <boolean>]
+           }
+<type> → string | integer | number | bool | select | subcmd | group
+<values> → {
+             true: <value>,
+             false: <value>
+           }
+<value> → {
+            name: <name>
+          }
+<choices> → [
+              (<choice>,)*
+            ]
+<choice> → {
+             name: <string-witout-spaces>,
+             [value: <string>]
+           }
+```
+```
+<settings> → Object
+<prefix> → String
+<helpcmd> → String
+<errors> → Object
+<error-code> → Number
+<error-format> → Function
+<commands> → Array
+<command> → Object
+<name> → String
+<description> → String
+<string-witout-spaces> → String
+<string-alphanumeric> → String
+<options> → Array
+<option> → Object
+<ignore> → Array
+<callback> → Function
+<type> → String
+<values> → Object
+<value> → Object
+<choices> → Array
+<choice> → Object
+
+<string> → String
+<number> → Number
+<boolean> → Boolean
+```
 
 ### 引数指定の方法
 ここからは、実際に例を交えて説明していきます。
@@ -347,10 +452,10 @@ errors: {
           name: "hash",
           type: "string",
           match: /^[a-f0-9]{10}$/,
-          required: true
+          required: true,
         }
       ],
-      ignore: [9],
+      ignore: [10],
       callback: (err) => {
         if(err.is_err) return "ハッシュではありません";
         return "ハッシュです";
@@ -379,10 +484,10 @@ parser.parse("!hash test"); // "ハッシュではありません"
           type: "string",
           minlength: 3,
           maxlength: 15,
-          required: true
+          required: true,
         }
       ],
-      ignore: [9],
+      ignore: [10],
       callback: (err) => {
         if(err.type == 2) return "ユーザー名が短すぎます";
         if(err.type == 3) return "ユーザー名が長すぎます";
@@ -395,43 +500,4 @@ parser.parse("!hash test"); // "ハッシュではありません"
 ```js
 parser.parse("!name a"); // "ユーザー名が短すぎます"
 parser.parse("!name yukinya"); // "ユーザー名は指定した長さあります"
-```
-
-#### 2つの数値を足し算する
-```js
-{
-  prefix: "!",
-  commands: [
-    {
-      name: "add",
-      description: "2つの数値を足し算します",
-      options: [
-        {
-          name: "num1",
-          type: "integer",
-          min: 0,
-          max: 9999,
-          required: true
-        },
-        {
-          name: "num2",
-          type: "integer",
-          min: 0,
-          max: 9999,
-          required: true
-        }
-      ],
-      ignore: [4, 5, 9],
-      callback: (err, options) => {
-        let num1 = options.getInteger("num1");
-        let num2 = options.getInteger("num2");
-        return num1 + num2;
-      }
-    }
-  ]
-}
-```
-```js
-parser.parse("!add 5"); // "Integer型の引数'arg2'は必須です"
-parser.parse("!add 5 10"); // "15"
 ```
