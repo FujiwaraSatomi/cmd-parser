@@ -32,7 +32,8 @@ parser.set({
   prefix: "!"
 })
 ```
-※以下`parser.set()`を省略します。
+※以下`parser.set()`を省略します。\
+接頭辞は、コマンド名との衝突を避けるため、基本的に記号を指定してください。
 
 コマンドを設定します。\
 例えば、`!info`というコマンドを作りたい場合、
@@ -85,13 +86,9 @@ parser.set({
 });
 console.log(parser.parse("!info")); // "このボットは、コマンドをパースします。"
 ```
-そのコマンドが静的なレスポンスしか返さないのなら、単純に文字列だけでもいけます。これは上記と同じ動作をします。
-```js
-callback: "このボットは、コマンドをパースします。"
-```
 
 次に、コマンドに引数を持たせるようにします。\
-例えば、`!say message`というような、指定したメッセージをオウム返しするコマンドを作るとします。\
+例えば、`!say <message>`で、指定したメッセージをオウム返しするコマンドを作るとします。\
 結論から言えば以下のようになります。
 ```js
 {
@@ -108,7 +105,7 @@ callback: "このボットは、コマンドをパースします。"
           required: true
         }
       ],
-      callback: (options) => {
+      callback: (err, options) => {
         return options.getString("message");
       }
     }
@@ -124,12 +121,12 @@ descriptionとrequiredは省略可能です。
 | 型 | 説明 |
 | :-: | :-: |
 | string | 文字列を指定します any型を使用したい場合はこの型を使用してください |
-| integer | 整数値を指定します |
+| integer | 整数値を指定します 小数値が指定された場合は、整数未満を切り捨てます |
 | number | 小数値を指定します |
 | bool | 真偽値を指定します |
 | select | 複数の値から一つを指定します |
 | subcmd | サブコマンドを指定します |
-| group | 複数の引数がまとめられたグループを指定します |
+| group | 複数の引数がまとめられたグループを指定します groupの中にgroupを入れることはできません |
 
 ### プロパティの説明
 | プロパティ | データ型 | 説明 | 対応する型 |
@@ -144,8 +141,13 @@ descriptionとrequiredは省略可能です。
 | choices | `Array` | 受け付ける値を指定します | `select` |
 | commands | `Array` | サブコマンドを指定します | `subcmd` |
 | options | `Array` | 引数を指定します | `group` |
-| maxarglength | `Number` | 可変長引数にした時の最大の個数を指定します | `string` `number`
+| variadic | `Boolean` | 引数を可変長引数にするかを指定します | `string` `integer` `number` `bool` `select` |
+| maxarglength | `Number` | 可変長引数にした時の最大の個数を指定します | `string` `integer` `number` `bool` `select` |
 | required | `Boolean` | 引数を必須にします | すべて |
+| define | `Array` | optionを指定します のちにoptionsで使用することができます | `subcmd` |
+| use | `String` | nameを指定するとdefineで定義したoptionを使用することができます | なし |
+
+※`required = false`は、引数を「省略可能」ではなく、「空文字にすることができる」だということに注意してください。例えば、`!test [arg1] <arg2>`というコマンドなら、`!test arg2`ではなく、`!test  arg2`と、区切り分のスペースを入れる必要があります。
 
 ### callbackの引数
 ```js
@@ -167,7 +169,6 @@ callback: (err, options, raw, command) => {
   `options.getBool()` - 真偽値の引数を取得します。返値は`Boolean`です。
   `options.getSelect()` - 選択式の引数を取得します。返値は`String`です。
   `options.getSubcmd()` - サブコマンドの引数を取得します。返値は`String`です。
-  `options.getGroup()` - グループを取得します。返値は`Object`です。
   `options.getAll()` - すべての引数を取得します。
   ※可変長引数の場合はすべての型で配列が返ります。
 - `raw` - parseの引数に指定した生のメッセージを取得します。
@@ -175,18 +176,19 @@ callback: (err, options, raw, command) => {
 - `command` - nameやdescriptionがあるコマンドのオブジェクトを取得します。
 
 #### `err.type`
-| タイプ | 説明 |
+| エラー番号 | 説明 |
 | :-: | :-: |
 | 0 | エラーはありません |
 | 1 | matchにマッチしていません |
 | 2 | 文字数がminlengthより少ないです |
 | 3 | 文字数がmaxlengthより多いです |
-| 4 | 数値がminよりも小さいです |
-| 5 | 数値がmaxよりも大きいです |
-| 6 | boolで、存在しない値が指定されています |
-| 7 | selectで、存在しない値が指定されています |
-| 8 | 存在しないサブコマンドです |
-| 9 | 必須な引数には何も指定されていません |
+| 4 | 有効な数値ではありません |
+| 5 | 数値がminよりも小さいです |
+| 6 | 数値がmaxよりも大きいです |
+| 7 | boolで、存在しない値が指定されています |
+| 8 | selectで、存在しない値が指定されています |
+| 9 | 存在しないサブコマンドです |
+| 10 | 必須な引数には何も指定されていません |
 
 #### `err.type_p`
 | タイプ | 説明 |
@@ -279,8 +281,8 @@ ignore: parser.all
           required: true,
         }
       ],
-      callback: (err) => {
-        if(err.type == 10) return "引数argは必須です";
+      ignore: [10]
+      callback: () => {
         return "テストを通過しました";
       }
     }
@@ -292,17 +294,18 @@ parser.parse("!test"); // "引数argは必須で、String型を指定する必�
 ```
 具体的には、最初のオブジェクトにerrorsオブジェクトを作り、対応する番号をプロパティ名として関数を指定するだけです。※エラー番号0は指定できません。
 
-| タイプ | デフォルトのエラーの形式 |
+| エラー番号 | デフォルトのエラーの形式 |
 | :-: | :-: |
 | 1 | `${type}型の引数'${name}'は指定された形式にマッチしていません` |
 | 2 | `${type}型の引数'${name}'は${arg}文字より長くする必要があります` |
 | 3 | `${type}型の引数'${name}'は${arg}文字より短くする必要があります` |
-| 4 | `${type}型の引数'${name}'は${arg}以上にする必要があります` |
-| 5 | `${type}型の引数'${name}'は${arg}以下にする必要があります` |
-| 6 | `${type}型の引数'${name}'は指定された値にする必要があります` |
+| 4 | `${type}型の引数'${name}'は有効な数値の形式ではありません`
+| 5 | `${type}型の引数'${name}'は${arg}以上にする必要があります` |
+| 6 | `${type}型の引数'${name}'は${arg}以下にする必要があります` |
 | 7 | `${type}型の引数'${name}'は指定された値にする必要があります` |
-| 8 | `${type}型の引数'${name}'にはそのようなサブコマンドはありません` |
-| 9 | `${type}型の引数'${name}'は必須です` |
+| 8 | `${type}型の引数'${name}'は指定された値にする必要があります` |
+| 9 | `${type}型の引数'${name}'にはそのようなサブコマンドはありません` |
+| 10 | `${type}型の引数'${name}'は必須です` |
 
 ```js
 errors: {
@@ -321,7 +324,7 @@ errors: {
 | value | 実際に指定された値です。必須の引数に指定されていなかった場合でも、空文字(`""`)で返ります |
 
 #### argに格納される値
-| タイプ | プロパティ |
+| エラー番号 | プロパティ |
 | :-: | :-: |
 | 1 | match |
 | 2 | minlength |
@@ -346,7 +349,7 @@ parser.set(<settings>);
              }
 <prefix> → <string-witout-spaces>
 <helpcmd> → <string-alphanumeric>
-<string-witout-spaces> → (<character> - " ")+
+<string-witout-spaces> → (<character> - " ")*
 <string-alphanumeric> → (a..z | A..Z | 0..9)+
 <errors> → {
              (<error-code>: <error-format>,)*
@@ -375,9 +378,11 @@ parser.set(<settings>);
                return <any>
              }
 <option> → {
-             name: <string-witout-spaces>,
-             [description: <string>,]
-             type: <type>,
+             [use: <string>,]
+             [name: <string-witout-spaces>,]
+             [description: <string|function>,]
+             [type: <type>,]
+             [define: <options>,]
              [match: <match>,]
              [minlength: <number>,]
              [maxlength: <number>,]
@@ -477,7 +482,7 @@ parser.parse("!hash test"); // "ハッシュではありません"
   commands: [
     {
       name: "name",
-      description: "ユーザー名が指定した長さあるか確認します",
+      description: "ユーザー名が指定した長さあるかを判定します",
       options: [
         {
           name: "username",
