@@ -242,7 +242,7 @@ parser.parse("!test"); // "引数argは必須です"
       required: true,
     }
   ],
-  ignore: [10]
+  ignore: [10],
   callback: (err) => {
     return "テストを通過しました";
   }
@@ -281,7 +281,7 @@ ignore: parser.all
           required: true,
         }
       ],
-      ignore: [10]
+      ignore: [10],
       callback: () => {
         return "テストを通過しました";
       }
@@ -504,5 +504,5 @@ parser.parse("!hash test"); // "ハッシュではありません"
 ```
 ```js
 parser.parse("!name a"); // "ユーザー名が短すぎます"
-parser.parse("!name yukinya"); // "ユーザー名は指定した長さあります"
+parser.parse("!name yuito2525"); // "ユーザー名は指定した長さあります"
 ```
